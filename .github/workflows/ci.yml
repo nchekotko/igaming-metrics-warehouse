@@ -1,0 +1,50 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install
+        run: uv sync --locked
+
+      - name: Lint
+        run: |
+          uv run ruff check .
+          uv run ruff format --check .
+
+      - name: Unit tests
+        run: uv run pytest --ignore=tests/test_warehouse.py
+
+      - name: Generate synthetic data (seed 42)
+        run: uv run imw generate --seed 42
+
+      - name: Ingest monthly batches (contracts + quarantine + dbt snapshot per batch)
+        run: uv run imw load
+
+      - name: dbt build (seeds, snapshot, models, tests)
+        run: uv run dbt build --project-dir dbt --profiles-dir dbt
+
+      - name: Warehouse integration tests
+        run: uv run pytest tests/test_warehouse.py
+
+      - name: Experiment readout + HTML report
+        run: |
+          uv run imw experiment
+          uv run imw report
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: report
+          path: reports/
