@@ -1,0 +1,38 @@
+version: 2
+seeds:
+  - name: metric_definitions
+    description: >
+      Metric registry. Each (metric_name, version) has a validity window. NGR deduction components
+      are flags so the same components can be recombined per version. valid_to is inclusive; empty = open.
+    config:
+      column_types: {version: integer, valid_from: date, valid_to: date}
+    columns:
+      - name: metric_name
+        data_tests:
+          - not_null
+          - accepted_values: {arguments: {values: [ggr, ngr]}}
+      - name: bonus_cost_basis
+        data_tests:
+          - accepted_values: {arguments: {values: [none, converted, granted]}}
+  - name: gaming_tax_rates
+    config:
+      column_types: {valid_from: date, valid_to: date, rate: double}
+  - name: payment_fee_schedule
+    config:
+      column_types: {pct_fee: double, fixed_fee_eur: double}
+  - name: provider_fee_schedule
+    config:
+      column_types: {rev_share_pct: double}
+  - name: fx_rates
+    config:
+      column_types: {month: date, eur_per_unit: double}
+    data_tests:
+      - unique_combination: {arguments: {columns: [month, currency]}}
+  - name: affiliates
+    columns:
+      - name: affiliate_id
+        data_tests: [unique, not_null]
+      - name: deal_type
+        data_tests:
+          - accepted_values: {arguments: {values: [cpa, revshare, hybrid]}}
+  - name: dq_thresholds

@@ -1,0 +1,20 @@
+select
+    b.bet_id,
+    b.player_id,
+    b.placed_at,
+    b.placed_date,
+    b.settled_at,
+    b.settled_date,
+    b.status,
+    b.bet_type,
+    b.currency,
+    b.stake,
+    b.payout,
+    b.total_odds,
+    b.stake_eur,
+    b.payout_eur,
+    b.ggr_eur,
+    b.n_legs_reported,
+    b.n_state_events,
+    date_diff('hour', b.placed_at, b.settled_at) as hours_to_settle
+from {{ ref('int_bets') }} as b

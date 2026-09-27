@@ -1,0 +1,163 @@
+version: 2
+
+models:
+  # ------------------------------------------------------------------ core
+  - name: dim_player
+    description: Player dimension incl. inferred members for late-arriving registrations.
+    columns:
+      - name: player_id
+        data_tests: [unique, not_null]
+      - name: kyc_status
+        data_tests:
+          - accepted_values: {arguments: {values: [not_started, submitted, verified, rejected]}}
+
+  - name: dim_affiliate
+    columns:
+      - name: affiliate_id
+        data_tests: [unique, not_null]
+
+  - name: dim_affiliate_attribution
+    description: SCD2 player attribution from snap_player_attribution. valid_to exclusive.
+    data_tests:
+      - no_overlapping_intervals:
+          arguments: {partition_by: player_id, valid_from: valid_from, valid_to: valid_to}
+      - unique_combination: {arguments: {columns: [player_id, valid_from]}}
+    columns:
+      - name: attribution_sk
+        data_tests: [unique, not_null]
+      - name: player_id
+        data_tests:
+          - not_null
+          - relationships: {arguments: {to: ref('dim_player'), field: player_id}}
+      - name: affiliate_id
+        data_tests:
+          - relationships: {arguments: {to: ref('dim_affiliate'), field: affiliate_id}}
+      - name: channel
+        data_tests:
+          - accepted_values: {arguments: {values: [organic, affiliate, paid_search, paid_social]}}
+
+  - name: fct_bets
+    columns:
+      - name: bet_id
+        data_tests: [unique, not_null]
+      - name: player_id
+        data_tests:
+          - not_null
+          - relationships: {arguments: {to: ref('dim_player'), field: player_id}}
+      - name: status
+        data_tests:
+          - accepted_values: {arguments: {values: [open, won, lost, void]}}
+      - name: stake_eur
+        data_tests: [not_null]
+    data_tests:
+      - expression_is_true: {arguments: {expression: "settled_at is null or settled_at >= placed_at"}}
+      - expression_is_true: {arguments: {expression: "status <> 'lost' or payout = 0"}}
+
+  - name: fct_bet_legs
+    columns:
+      - name: bet_leg_sk
+        data_tests: [unique, not_null]
+      - name: bet_id
+        data_tests:
+          - relationships:
+              arguments: {to: ref('fct_bets'), field: bet_id}
+              config: {severity: warn}
+
+  - name: fct_game_rounds
+    description: Incremental on arrival time (_ingested_at) so late rounds are never skipped.
+    columns:
+      - name: round_id
+        data_tests: [unique, not_null]
+      - name: player_id
+        data_tests:
+          - relationships: {arguments: {to: ref('dim_player'), field: player_id}}
+      - name: provider_id
+        data_tests:
+          - accepted_values: {arguments: {values: [PRV_ALPHA, PRV_BETA, PRV_LEGACY]}}
+
+  - name: fct_wallet_tx
+    columns:
+      - name: tx_id
+        data_tests: [unique, not_null]
+      - name: player_id
+        data_tests:
+          - relationships: {arguments: {to: ref('dim_player'), field: player_id}}
+
+  - name: fct_bonus
+    columns:
+      - name: bonus_id
+        data_tests: [unique, not_null]
+      - name: bonus_state
+        data_tests:
+          - accepted_values:
+              arguments: {values: [converted, forfeited, active, orphan_no_grant]}
+      - name: player_id
+        data_tests:
+          - relationships: {arguments: {to: ref('dim_player'), field: player_id}}
+
+  - name: fct_ngr_player_daily_versions
+    description: Player-day x NGR definition version (reported + restated).
+    columns:
+      - name: player_day_version_sk
+        data_tests: [unique, not_null]
+      - name: metric_version
+        data_tests:
+          - relationships:
+              arguments: {to: ref('metric_definitions'), field: version}
+
+  - name: fct_player_daily
+    description: Player-day fact with reported NGR and point-in-time channel.
+    columns:
+      - name: player_day_sk
+        data_tests: [unique, not_null]
+      - name: player_id
+        data_tests:
+          - relationships: {arguments: {to: ref('dim_player'), field: player_id}}
+      - name: ngr_metric_version
+        data_tests: [not_null]
+      - name: channel_pit
+        data_tests:
+          - accepted_values:
+              arguments: {values: [organic, affiliate, paid_search, paid_social, unknown]}
+
+  # ------------------------------------------------------------------ product
+  - name: mart_ngr_monthly_by_channel
+    data_tests:
+      - unique_combination: {arguments: {columns: [activity_month, channel]}}
+
+  - name: mart_metric_restatement
+    data_tests:
+      - unique_combination: {arguments: {columns: [activity_month, metric_version]}}
+
+  - name: mart_cohort_retention
+    data_tests:
+      - unique_combination: {arguments: {columns: [ftd_month, months_since_ftd]}}
+      - expression_is_true: {arguments: {expression: "retention_rate between 0 and 1"}}
+      - expression_is_true: {arguments: {expression: "months_since_ftd > 0 or retention_rate > 0.5"}}
+
+  - name: mart_cohort_ltv
+    data_tests:
+      - unique_combination: {arguments: {columns: [ftd_month, months_since_ftd]}}
+
+  # ------------------------------------------------------------------ marketing
+  - name: mart_affiliate_performance
+    data_tests:
+      - unique_combination: {arguments: {columns: [affiliate_id, ftd_month]}}
+      - expression_is_true: {arguments: {expression: "qftd <= ftd"}}
+    columns:
+      - name: affiliate_id
+        data_tests:
+          - relationships: {arguments: {to: ref('dim_affiliate'), field: affiliate_id}}
+
+  # ------------------------------------------------------------------ experiments
+  - name: mart_experiment_player
+    columns:
+      - name: player_id
+        data_tests: [unique, not_null]
+      - name: arm
+        data_tests:
+          - accepted_values: {arguments: {values: [control, treatment]}}
+
+  - name: mart_experiment_daily
+    data_tests:
+      - unique_combination: {arguments: {columns: [player_id, day_index]}}

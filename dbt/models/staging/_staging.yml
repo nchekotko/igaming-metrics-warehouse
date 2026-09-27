@@ -1,0 +1,93 @@
+version: 2
+
+models:
+  - name: stg_players
+    description: Deduplicated registrations (first arrival wins).
+    columns:
+      - name: player_id
+        data_tests: [unique, not_null]
+      - name: currency
+        data_tests:
+          - accepted_values: {arguments: {values: [EUR, GBP, CAD]}}
+
+  - name: stg_wallet_transactions
+    description: Deduplicated wallet ledger, native + EUR amounts, signed cash effect.
+    columns:
+      - name: tx_id
+        data_tests: [unique, not_null]
+      - name: tx_type
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [deposit, withdrawal, chargeback, bet_stake, bet_payout, bet_refund,
+                         casino_stake, casino_win, bonus_convert]
+      - name: amount_eur
+        data_tests: [not_null]
+      - name: amount
+        data_tests:
+          - expression_is_true: {arguments: {expression: "amount > 0"}}
+
+  - name: stg_bets
+    columns:
+      - name: bet_event_id
+        data_tests: [unique, not_null]
+      - name: status
+        data_tests:
+          - accepted_values: {arguments: {values: [open, won, lost, void]}}
+
+  - name: stg_bet_legs
+    columns:
+      - name: leg_event_id
+        data_tests: [unique, not_null]
+
+  - name: stg_game_rounds
+    description: Deduplicated rounds; legacy provider timestamps converted from Europe/Malta to UTC.
+    columns:
+      - name: round_id
+        data_tests: [unique, not_null]
+      - name: stake_eur
+        data_tests: [not_null]
+
+  - name: stg_bonus_events
+    columns:
+      - name: bonus_event_id
+        data_tests: [unique, not_null]
+      - name: event_type
+        data_tests:
+          - accepted_values: {arguments: {values: [grant, wager, convert, forfeit]}}
+
+  - name: stg_rg_events
+    columns:
+      - name: rg_event_id
+        data_tests: [unique, not_null]
+
+  - name: stg_attribution_events
+    columns:
+      - name: attribution_event_id
+        data_tests: [unique, not_null]
+      - name: reason
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [registration_last_click, late_postback, affiliate_dispute, fraud_reversal]
+
+  - name: stg_experiment_assignments
+    data_tests:
+      - unique_combination: {arguments: {columns: [experiment_id, player_id]}}
+    columns:
+      - name: arm
+        data_tests:
+          - accepted_values: {arguments: {values: [control, treatment]}}
+
+  - name: stg_kyc_events
+    columns:
+      - name: event_id
+        data_tests: [unique, not_null]
+
+  - name: stg_affiliate_touchpoints
+    columns:
+      - name: touchpoint_id
+        data_tests: [unique, not_null]
+
+  - name: stg_quarantine
+    description: Contract violations with the raw line and error list.

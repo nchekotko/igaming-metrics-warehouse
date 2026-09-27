@@ -1,0 +1,9 @@
+affiliate_id,affiliate_name,deal_type,cpa_eur,revshare_pct,qftd_min_deposit_eur
+AFF01,Synthetic Affiliate 01 (tipster site),hybrid,15,0.20,30
+AFF02,Synthetic Affiliate 02 (sports news),cpa,25,0.00,20
+AFF03,Synthetic Affiliate 03 (casino reviews),revshare,0,0.35,20
+AFF04,Synthetic Affiliate 04 (comparison site),cpa,20,0.00,20
+AFF05,Synthetic Affiliate 05 (streamer),hybrid,10,0.15,20
+AFF06,Synthetic Affiliate 06 (bonus/cashback portal),cpa,15,0.00,10
+AFF07,Synthetic Affiliate 07 (SEO network),revshare,0,0.30,20
+AFF08,Synthetic Affiliate 08 (social traffic),cpa,12,0.00,15

@@ -1,0 +1,9 @@
+check_name,entity,warn_above,fail_above,description
+duplicate_rate,*,0.005,0.02,share of raw rows that are repeated deliveries of an already-seen event_id
+late_arrival_rate,*,0.03,0.10,share of events ingested more than late_threshold_hours after event time
+late_arrival_rate,game_rounds,0.25,0.40,legacy provider delivers next-day batches by design
+late_arrival_rate,affiliate_touchpoints,0.60,0.80,clicks are resolved to a player only at registration (up to 14 days later)
+quarantine_rate,*,0.002,0.01,share of landed lines rejected by the data contract
+freshness_hours,*,24,48,hours between data_as_of and the latest event time
+ledger_break_rate,wallet_transactions,0.005,0.03,share of player-day-components where wallet != product events
+ledger_unexplained_break_rate,wallet_transactions,0.0005,0.005,breaks with no quarantined record nearby (lost callbacks / double credits)

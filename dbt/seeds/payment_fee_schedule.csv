@@ -1,0 +1,10 @@
+payment_method,tx_type,pct_fee,fixed_fee_eur
+card,deposit,0.018,0.10
+card,withdrawal,0.005,0.25
+card,chargeback,0.000,15.00
+ewallet,deposit,0.025,0.00
+ewallet,withdrawal,0.010,0.00
+ewallet,chargeback,0.000,10.00
+bank_transfer,deposit,0.002,0.30
+bank_transfer,withdrawal,0.002,0.50
+bank_transfer,chargeback,0.000,10.00

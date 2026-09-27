@@ -1,0 +1,8 @@
+imw:
+  target: dev
+  outputs:
+    dev:
+      type: duckdb
+      # Relative to the working directory (run dbt from the repo root) unless IMW_DUCKDB_PATH is set.
+      path: "{{ env_var('IMW_DUCKDB_PATH', 'warehouse/imw.duckdb') }}"
+      threads: 4

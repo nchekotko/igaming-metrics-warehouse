@@ -1,0 +1,45 @@
+version: 2
+
+sources:
+  - name: raw
+    description: >
+      Contract-validated landing tables written by `imw load` (SYNTHETIC DEMO DATA).
+      Append-only: duplicates are kept here on purpose so duplicate rate stays measurable.
+    schema: raw
+    tables:
+      - name: players
+        data_tests:
+          - duplicate_rate_below: {arguments: {key: event_id, max_rate: 0.02}}
+      - name: kyc_events
+      - name: affiliate_touchpoints
+      - name: attribution_events
+      - name: wallet_transactions
+        data_tests:
+          - duplicate_rate_below: {arguments: {key: event_id, max_rate: 0.02}}
+          - late_arrival_rate_below: {arguments: {event_ts: tx_ts, max_rate: 0.10}}
+        columns:
+          - name: tx_ts
+            data_tests:
+              - event_freshness_within: {arguments: {max_hours: 24}}
+      - name: bets
+        data_tests:
+          - duplicate_rate_below: {arguments: {key: event_id, max_rate: 0.02}}
+          - late_arrival_rate_below: {arguments: {event_ts: event_ts, max_rate: 0.10}}
+        columns:
+          - name: event_ts
+            data_tests:
+              - event_freshness_within: {arguments: {max_hours: 24}}
+      - name: bet_legs
+      - name: game_rounds
+        data_tests:
+          - duplicate_rate_below: {arguments: {key: event_id, max_rate: 0.02}}
+          - late_arrival_rate_below: {arguments: {event_ts: round_ts, max_rate: 0.40}}
+        columns:
+          - name: round_ts
+            data_tests:
+              - event_freshness_within: {arguments: {max_hours: 24}}
+      - name: bonus_events
+      - name: rg_events
+      - name: experiment_assignments
+      - name: quarantine
+      - name: _ingestion_log

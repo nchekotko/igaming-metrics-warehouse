@@ -1,0 +1,28 @@
+version: 2
+
+models:
+  - name: dq_ledger_reconciliation
+    description: Wallet vs product events per player x day x component (native currency).
+    columns:
+      - name: recon_sk
+        data_tests: [unique, not_null]
+      - name: component
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [bet_stake, bet_payout, bet_refund, casino_stake, casino_win, bonus_convert]
+
+  - name: dq_entity_health
+    description: Volume, duplicate / late / quarantine / tz-normalisation rates and freshness per entity.
+    columns:
+      - name: entity
+        data_tests: [unique, not_null]
+
+  - name: dq_summary
+    description: Check x entity with thresholds from the dq_thresholds seed and pass / warn / fail status.
+    data_tests:
+      - unique_combination: {arguments: {columns: [check_name, entity]}}
+    columns:
+      - name: status
+        data_tests:
+          - accepted_values: {arguments: {values: [pass, warn, fail]}}

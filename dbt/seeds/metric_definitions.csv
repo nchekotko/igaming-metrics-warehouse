@@ -1,0 +1,4 @@
+metric_name,version,valid_from,valid_to,bonus_cost_basis,deduct_bonus_cost,deduct_payment_fees,deduct_gaming_tax,deduct_provider_fees,deduct_chargebacks,definition,change_note
+ggr,1,2025-01-01,,none,false,false,false,false,false,"sportsbook: stakes - payouts of bets settled on the day (void excluded); casino: stakes - wins of rounds on the day",initial
+ngr,1,2025-01-01,2025-05-31,converted,true,true,true,false,false,"GGR - bonus cost (converted to cash) - payment fees - gaming tax",initial finance definition
+ngr,2,2025-06-01,,converted,true,true,true,true,true,"GGR - bonus cost (converted) - payment fees - gaming tax - casino provider fees - chargebacks",finance policy 2025-06: provider fees and chargebacks moved into NGR

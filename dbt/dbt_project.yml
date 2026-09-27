@@ -1,0 +1,53 @@
+# SYNTHETIC DEMO DATA warehouse — see ../README.md
+name: imw
+version: "1.0.0"
+config-version: 2
+profile: imw
+
+model-paths: ["models"]
+seed-paths: ["seeds"]
+snapshot-paths: ["snapshots"]
+test-paths: ["tests"]
+macro-paths: ["macros"]
+target-path: "target"
+clean-targets: ["target", "dbt_packages"]
+
+vars:
+  # Reporting "as of" moment for event-time freshness (simulation ends 2025-08-31).
+  data_as_of: "2025-09-01 00:00:00"
+  late_threshold_hours: 24
+  recon_tolerance: 0.005
+  qftd_window_days: 30
+  experiment_id: "crm_reactivation_2025_07"
+  experiment_start: "2025-07-01"
+  experiment_days: 28
+  # LTV / cohort comparisons use ONE definition for all cohorts (latest), not the per-period one.
+  ltv_ngr_version: 2
+
+models:
+  imw:
+    +persist_docs: {relation: true, columns: true}
+    staging:
+      +schema: staging
+      +materialized: view
+    intermediate:
+      +schema: intermediate
+      +materialized: table
+    marts:
+      +schema: marts
+      +materialized: table
+    dq:
+      +schema: dq
+      +materialized: table
+
+seeds:
+  imw:
+    +schema: reference
+
+snapshots:
+  imw:
+    +schema: snapshots
+
+data_tests:
+  imw:
+    +store_failures: false
