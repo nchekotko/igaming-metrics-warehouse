@@ -1,0 +1,166 @@
+# Data contracts for the landing zone (SYNTHETIC DEMO DATA operator).
+#
+# Each entity describes the payload a producer promises to send. The ingestion layer
+# (src/imw/contracts.py) compiles these into Pydantic models, validates every record and
+# routes violations to raw.quarantine together with the error list.
+#
+# Field types: string | integer | decimal | boolean | timestamp | enum
+# Timestamps must be ISO-8601 *with* a UTC offset unless the producing source has an explicit
+# `timezone_by_source` override (legacy producers that emit local wall-clock time).
+contract_version: "1.3.0"
+owner: data-platform@example.invalid
+
+entities:
+  players:
+    description: Player registration (identity service).
+    producer: identity-service
+    primary_key: event_id
+    fields:
+      event_id:        {type: string, pattern: '^reg-P\d{6}$'}
+      player_id:       {type: string, pattern: '^P\d{6}$'}
+      registered_at:   {type: timestamp}
+      country:         {type: enum, values: [DE, FI, IE, NL, GB, CA]}
+      currency:        {type: enum, values: [EUR, GBP, CAD]}
+      birth_year:      {type: integer, ge: 1920, le: 2007}
+      marketing_consent: {type: boolean}
+
+  kyc_events:
+    description: KYC lifecycle events.
+    producer: kyc-service
+    primary_key: event_id
+    fields:
+      event_id:      {type: string}
+      player_id:     {type: string, pattern: '^P\d{6}$'}
+      event_ts:      {type: timestamp}
+      status:        {type: enum, values: [submitted, verified, rejected]}
+      document_type: {type: enum, values: [passport, id_card, driving_licence]}
+
+  affiliate_touchpoints:
+    description: Marketing touchpoints (clicks) resolved to a player after registration.
+    producer: tracking-service
+    primary_key: event_id
+    fields:
+      event_id:     {type: string}
+      player_id:    {type: string, pattern: '^P\d{6}$'}
+      touch_ts:     {type: timestamp}
+      channel:      {type: enum, values: [organic, affiliate, paid_search, paid_social]}
+      affiliate_id: {type: string, nullable: true, pattern: '^AFF\d{2}$'}
+      campaign:     {type: string, nullable: true}
+
+  attribution_events:
+    description: >
+      Attribution decisions. A player can be re-attributed later (late postback, affiliate
+      dispute, fraud reversal); the warehouse keeps the full history as SCD2.
+    producer: tracking-service
+    primary_key: event_id
+    fields:
+      event_id:     {type: string}
+      player_id:    {type: string, pattern: '^P\d{6}$'}
+      attributed_at: {type: timestamp}
+      channel:      {type: enum, values: [organic, affiliate, paid_search, paid_social]}
+      affiliate_id: {type: string, nullable: true, pattern: '^AFF\d{2}$'}
+      reason:       {type: enum, values: [registration_last_click, late_postback, affiliate_dispute, fraud_reversal]}
+
+  wallet_transactions:
+    description: Wallet ledger entries. Amounts are positive; direction is implied by tx_type.
+    producer: wallet-service
+    primary_key: event_id
+    fields:
+      event_id:       {type: string}
+      player_id:      {type: string, pattern: '^P\d{6}$'}
+      tx_ts:          {type: timestamp}
+      tx_type:        {type: enum, values: [deposit, withdrawal, chargeback, bet_stake, bet_payout, bet_refund, casino_stake, casino_win, bonus_convert]}
+      amount:         {type: decimal, gt: 0}
+      currency:       {type: enum, values: [EUR, GBP, CAD]}
+      payment_method: {type: enum, nullable: true, values: [card, ewallet, bank_transfer]}
+      reference_id:   {type: string, nullable: true}
+
+  bets:
+    description: >
+      Sportsbook bet state changes. One record at placement (status=open) and one at settlement.
+      Several records share bet_id; event_id identifies the state change itself.
+    producer: sportsbook
+    primary_key: event_id
+    fields:
+      event_id:   {type: string}
+      bet_id:     {type: string}
+      player_id:  {type: string, pattern: '^P\d{6}$'}
+      event_ts:   {type: timestamp}
+      placed_at:  {type: timestamp}
+      settled_at: {type: timestamp, nullable: true}
+      status:     {type: enum, values: [open, won, lost, void]}
+      bet_type:   {type: enum, values: [single, accumulator]}
+      stake:      {type: decimal, gt: 0}
+      total_odds: {type: decimal, ge: 1}
+      payout:     {type: decimal, ge: 0}
+      currency:   {type: enum, values: [EUR, GBP, CAD]}
+
+  bet_legs:
+    description: Selections of a bet, emitted with the final (or open) result.
+    producer: sportsbook
+    primary_key: event_id
+    fields:
+      event_id:   {type: string}
+      bet_id:     {type: string}
+      leg_no:     {type: integer, ge: 1, le: 20}
+      event_ts:   {type: timestamp}
+      sport:      {type: enum, values: [football, tennis, basketball, ice_hockey, esports]}
+      market:     {type: enum, values: [match_winner, total_goals, handicap, both_teams_to_score]}
+      odds:       {type: decimal, ge: 1}
+      leg_result: {type: enum, values: [open, won, lost, void]}
+
+  game_rounds:
+    description: Casino game rounds from aggregator / provider integrations.
+    producer: casino-aggregator
+    primary_key: event_id
+    timezone_by_source:
+      legacy-casino-gw: Europe/Malta   # legacy provider sends local wall-clock time without offset
+    fields:
+      event_id:    {type: string}
+      player_id:   {type: string, pattern: '^P\d{6}$'}
+      round_ts:    {type: timestamp}
+      provider_id: {type: enum, values: [PRV_ALPHA, PRV_BETA, PRV_LEGACY]}
+      game_id:     {type: string}
+      game_type:   {type: enum, values: [slots, live, table]}
+      stake:       {type: decimal, gt: 0}
+      win:         {type: decimal, ge: 0}
+      currency:    {type: enum, values: [EUR, GBP, CAD]}
+
+  bonus_events:
+    description: Bonus lifecycle (grant -> wager progress -> convert | forfeit).
+    producer: bonus-engine
+    primary_key: event_id
+    fields:
+      event_id:    {type: string}
+      bonus_id:    {type: string}
+      player_id:   {type: string, pattern: '^P\d{6}$'}
+      event_ts:    {type: timestamp}
+      event_type:  {type: enum, values: [grant, wager, convert, forfeit]}
+      bonus_type:  {type: enum, values: [welcome, reload, crm_reactivation]}
+      amount:      {type: decimal, ge: 0}
+      currency:    {type: enum, values: [EUR, GBP, CAD]}
+      wagering_requirement: {type: decimal, nullable: true, ge: 0}
+      campaign_id: {type: string, nullable: true}
+
+  rg_events:
+    description: Responsible-gaming events.
+    producer: rg-service
+    primary_key: event_id
+    fields:
+      event_id:     {type: string}
+      player_id:    {type: string, pattern: '^P\d{6}$'}
+      event_ts:     {type: timestamp}
+      event_type:   {type: enum, values: [deposit_limit_set, deposit_limit_hit, self_exclusion]}
+      limit_amount: {type: decimal, nullable: true, gt: 0}
+      limit_period: {type: enum, nullable: true, values: [day, week, month]}
+
+  experiment_assignments:
+    description: CRM experiment assignments (randomised, hashed on player_id).
+    producer: crm-platform
+    primary_key: event_id
+    fields:
+      event_id:      {type: string}
+      player_id:     {type: string, pattern: '^P\d{6}$'}
+      experiment_id: {type: string}
+      arm:           {type: enum, values: [control, treatment]}
+      assigned_at:   {type: timestamp}
