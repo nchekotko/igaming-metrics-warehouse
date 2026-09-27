@@ -1,0 +1,22 @@
+# Python / uv
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+
+# Generated data (SYNTHETIC, reproducible from the seed)
+data/
+warehouse/
+*.duckdb
+*.duckdb.wal
+reports/
+
+# dbt
+dbt/target/
+dbt/dbt_packages/
+dbt/logs/
+logs/
+target/
+.user.yml

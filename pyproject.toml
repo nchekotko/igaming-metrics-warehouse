@@ -1,0 +1,46 @@
+[project]
+name = "imw"
+version = "0.1.0"
+description = "iGaming metrics warehouse: synthetic operator data, data contracts, dbt + DuckDB, versioned GGR/NGR, DQ and experiment readout"
+readme = "README.md"
+license = "MIT"
+authors = [
+    { name = "Nikolay Chekotko", email = "170371940+nchekotko@users.noreply.github.com" }
+]
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "numpy>=2.0",
+    "pandas>=2.2",
+    "scipy>=1.13",
+    "pydantic>=2.8",
+    "pyyaml>=6.0",
+    "duckdb>=1.1",
+    "dbt-core>=1.10,<1.13",
+    "dbt-duckdb>=1.10",
+    "matplotlib>=3.9",
+]
+
+[project.scripts]
+imw = "imw.cli:main"
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3",
+    "ruff>=0.6",
+]
+
+[build-system]
+requires = ["uv_build>=0.12.15,<0.13.0"]
+build-backend = "uv_build"
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "SIM", "RUF"]
+ignore = ["RUF001", "RUF002", "RUF003"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
